@@ -1,0 +1,154 @@
+# Deployment Configuration
+
+# Application Settings
+app:
+  name: "multimodal-ai-suite"
+  version: "1.0.0"
+  environment: "production"  # development, staging, production
+  debug: false
+  port: 8501
+  host: "0.0.0.0"
+
+# API Settings
+api:
+  title: "Multimodal Intelligence API"
+  description: "Document classification and image recognition API"
+  version: "1.0.0"
+  port: 8000
+  workers: 4
+  timeout: 60
+  max_request_size: 10485760  # 10MB in bytes
+
+# Authentication
+auth:
+  enabled: true
+  token_expiry: 3600  # seconds
+  secret_key_env: "SECRET_KEY"
+  algorithm: "HS256"
+  allowed_origins:
+    - "http://localhost:8501"
+    - "http://localhost:3000"
+
+# AWS Configuration
+aws:
+  region: "us-east-1"
+
+  s3:
+    bucket_name: "multimodal-ai-models"
+    model_prefix: "models/"
+    data_prefix: "data/"
+
+  ecr:
+    repository: "multimodal-ai-suite"
+
+  ecs:
+    cluster: "multimodal-cluster"
+    service: "multimodal-service"
+    task_definition: "multimodal-task"
+    cpu: "2048"  # 2 vCPU
+    memory: "4096"  # 4GB
+
+  ec2:
+    instance_type: "t3.large"  # Cost-optimized with autoscaling
+    ami: "ami-ubuntu-gpu"  # GPU optional
+    key_name: "multimodal-keypair"
+
+  lambda:
+    function_name: "multimodal-inference"
+    timeout: 300
+    memory_size: 3008
+
+  autoscaling:
+    min_capacity: 1
+    max_capacity: 5
+    target_cpu_utilization: 70
+
+# Docker Configuration
+docker:
+  image_name: "multimodal-ai-suite"
+  tag: "latest"
+  base_image: "python:3.10-slim"
+  expose_port: 8501
+
+# Performance Settings
+performance:
+  inference:
+    max_latency_ms: 600
+    batch_size: 1
+    use_gpu: false  # Set to true if GPU available
+    num_threads: 4
+
+  caching:
+    enabled: true
+    ttl: 3600
+    max_size: 100
+
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 60
+
+# Security Settings
+security:
+  encryption_in_transit: true
+  encryption_at_rest: true
+  temp_file_cleanup: true
+  temp_file_ttl: 300  # seconds
+
+  cors:
+    enabled: true
+    allow_credentials: true
+    allowed_methods: ["GET", "POST"]
+    allowed_headers: ["*"]
+
+  headers:
+    strict_transport_security: "max-age=31536000; includeSubDomains"
+    x_content_type_options: "nosniff"
+    x_frame_options: "DENY"
+
+# Monitoring & Logging
+monitoring:
+  enabled: true
+  prometheus:
+    enabled: true
+    port: 9090
+
+  cloudwatch:
+    enabled: true
+    log_group: "/aws/ecs/multimodal-ai-suite"
+    retention_days: 7
+
+  health_check:
+    endpoint: "/health"
+    interval: 30
+    timeout: 5
+    unhealthy_threshold: 3
+
+# Model Serving
+model_serving:
+  document_classifier:
+    model_path: "saved_models/document_classifier"
+    version: "latest"
+
+  image_classifier:
+    model_path: "saved_models/image_classifier"
+    version: "latest"
+
+  multimodal_fusion:
+    model_path: "saved_models/multimodal_fusion"
+    version: "latest"
+
+  warm_up: true
+  preload_models: true
+
+# Resource Limits
+resources:
+  max_concurrent_requests: 10
+  request_timeout: 60
+  upload_size_limit: 10485760  # 10MB
+
+  memory:
+    soft_limit: 3072  # MB
+    hard_limit: 4096  # MB
+
+  cpu:
+    shares: 1024

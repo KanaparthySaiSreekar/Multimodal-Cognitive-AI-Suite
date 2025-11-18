@@ -1,0 +1,135 @@
+# Training Configuration
+
+# General Training Settings
+general:
+  seed: 42
+  device: "cuda"  # cuda, cpu, mps
+  mixed_precision: true
+  gradient_accumulation_steps: 4
+  log_interval: 10
+  save_interval: 500
+  eval_interval: 100
+
+# Document Classification Training
+document_training:
+  batch_size: 16
+  num_epochs: 10
+  learning_rate: 2.0e-5
+  weight_decay: 0.01
+  warmup_steps: 500
+  max_grad_norm: 1.0
+
+  optimizer:
+    type: "adamw"
+    betas: [0.9, 0.999]
+    eps: 1.0e-8
+
+  scheduler:
+    type: "linear"
+    num_warmup_steps: 500
+
+  early_stopping:
+    patience: 3
+    metric: "val_f1"
+    mode: "max"
+
+# Image Classification Training
+image_training:
+  batch_size: 32
+  num_epochs: 20
+  learning_rate: 3.0e-4
+  weight_decay: 0.05
+  warmup_epochs: 2
+  max_grad_norm: 1.0
+
+  optimizer:
+    type: "adamw"
+    betas: [0.9, 0.999]
+    eps: 1.0e-8
+
+  scheduler:
+    type: "cosine"
+    num_warmup_steps: 1000
+    min_lr: 1.0e-6
+
+  early_stopping:
+    patience: 5
+    metric: "val_accuracy"
+    mode: "max"
+
+# Multimodal Training
+multimodal_training:
+  batch_size: 12
+  num_epochs: 15
+  learning_rate: 1.0e-5
+  weight_decay: 0.01
+  warmup_steps: 800
+  max_grad_norm: 1.0
+  freeze_encoders_epochs: 2  # Freeze pretrained encoders for first N epochs
+
+  optimizer:
+    type: "adamw"
+    betas: [0.9, 0.999]
+    eps: 1.0e-8
+
+  scheduler:
+    type: "cosine_with_restarts"
+    num_warmup_steps: 800
+    num_cycles: 3
+
+  early_stopping:
+    patience: 4
+    metric: "val_f1_macro"
+    mode: "max"
+
+# Data Loading
+data_loading:
+  num_workers: 4
+  pin_memory: true
+  prefetch_factor: 2
+  persistent_workers: true
+
+# Evaluation Metrics
+metrics:
+  classification:
+    - "accuracy"
+    - "precision"
+    - "recall"
+    - "f1"
+    - "f1_macro"
+    - "f1_micro"
+    - "confusion_matrix"
+    - "classification_report"
+
+  threshold: 0.5
+  top_k: 5
+
+# Model Checkpointing
+checkpointing:
+  save_best_only: true
+  save_top_k: 3
+  monitor: "val_f1"
+  mode: "max"
+  save_weights_only: false
+
+# Logging
+logging:
+  use_wandb: true
+  use_tensorboard: true
+  use_mlflow: false
+  log_gradients: false
+  log_model_architecture: true
+
+  wandb:
+    project: "multimodal-ai-suite"
+    entity: null
+    tags: ["document-classification", "image-recognition", "multimodal"]
+
+  tensorboard:
+    log_dir: "./logs/tensorboard"
+
+# Experiment Tracking
+experiment:
+  name: "multimodal_experiment"
+  description: "Multimodal document and image classification"
+  tags: ["transformer", "vision-transformer", "multimodal-fusion"]

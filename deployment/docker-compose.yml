@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # Streamlit UI Service
+  streamlit:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+      target: production
+    container_name: multimodal-ui
+    ports:
+      - "8501:8501"
+    volumes:
+      - ../saved_models:/app/saved_models
+      - ../logs:/app/logs
+      - ../data:/app/data:ro
+    environment:
+      - ENVIRONMENT=production
+      - PYTHONPATH=/app
+    restart: unless-stopped
+    networks:
+      - multimodal-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # FastAPI Service (optional - for REST API)
+  api:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+      target: production
+    container_name: multimodal-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../saved_models:/app/saved_models:ro
+      - ../logs:/app/logs
+    environment:
+      - ENVIRONMENT=production
+      - PYTHONPATH=/app
+    command: ["uvicorn", "src.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+    restart: unless-stopped
+    networks:
+      - multimodal-network
+    depends_on:
+      - streamlit
+
+  # Nginx reverse proxy (optional - for production)
+  nginx:
+    image: nginx:alpine
+    container_name: multimodal-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - streamlit
+      - api
+    networks:
+      - multimodal-network
+    restart: unless-stopped
+
+networks:
+  multimodal-network:
+    driver: bridge
+
+volumes:
+  model-data:
+  log-data:
