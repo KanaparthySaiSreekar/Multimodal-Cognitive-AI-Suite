@@ -126,3 +126,102 @@ class LoggerContext:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.logger.setLevel(self.old_level)
         return False
+
+
+# Correlation ID support for request tracing
+import contextvars
+import uuid
+
+correlation_id_var = contextvars.ContextVar("correlation_id", default=None)
+
+
+def get_correlation_id() -> Optional[str]:
+    """Get current correlation ID from context."""
+    return correlation_id_var.get()
+
+
+def set_correlation_id(correlation_id: Optional[str] = None):
+    """Set correlation ID for current context."""
+    if correlation_id is None:
+        correlation_id = str(uuid.uuid4())
+    correlation_id_var.set(correlation_id)
+    return correlation_id
+
+
+class CorrelationIDFilter(logging.Filter):
+    """Add correlation ID to log records."""
+
+    def filter(self, record):
+        record.correlation_id = get_correlation_id() or "N/A"
+        return True
+
+
+def setup_structured_logger(
+    name: str,
+    log_file: Optional[str] = None,
+    level: int = logging.INFO,
+) -> logging.Logger:
+    """
+    Set up structured logger with correlation ID support.
+
+    Args:
+        name: Logger name
+        log_file: Path to log file
+        level: Logging level
+
+    Returns:
+        Configured logger with structured logging
+    """
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    logger.propagate = False
+    logger.handlers.clear()
+
+    # Add correlation ID filter
+    correlation_filter = CorrelationIDFilter()
+    logger.addFilter(correlation_filter)
+
+    # Console handler with JSON formatting
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(level)
+
+    json_formatter = jsonlogger.JsonFormatter(
+        "%(asctime)s %(name)s %(levelname)s %(correlation_id)s %(message)s",
+        timestamp=True,
+    )
+    console_handler.setFormatter(json_formatter)
+    logger.addHandler(console_handler)
+
+    # File handler with JSON formatting
+    if log_file:
+        log_path = Path(log_file)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setLevel(level)
+
+        file_formatter = jsonlogger.JsonFormatter(
+            "%(asctime)s %(name)s %(levelname)s %(correlation_id)s %(message)s "
+            "%(pathname)s %(lineno)d %(funcName)s",
+            timestamp=True,
+        )
+        file_handler.setFormatter(file_formatter)
+        logger.addHandler(file_handler)
+
+    return logger
+
+
+class CorrelationIDContext:
+    """Context manager for correlation ID tracking."""
+
+    def __init__(self, correlation_id: Optional[str] = None):
+        self.correlation_id = correlation_id or str(uuid.uuid4())
+        self.token = None
+
+    def __enter__(self):
+        self.token = correlation_id_var.set(self.correlation_id)
+        return self.correlation_id
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        correlation_id_var.reset(self.token)
+        return False
