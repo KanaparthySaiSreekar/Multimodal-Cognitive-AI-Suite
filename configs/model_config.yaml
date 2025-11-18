@@ -1,0 +1,72 @@
+# Model Configuration for Multimodal Intelligence Suite
+
+# Document Classification Model
+document_classifier:
+  model_name: "bert-base-uncased"
+  num_classes: 10
+  max_length: 512
+  dropout: 0.1
+  hidden_size: 768
+  num_attention_heads: 12
+  num_hidden_layers: 12
+
+# Image Classification Model
+image_classifier:
+  model_name: "google/vit-base-patch16-224"
+  num_classes: 100
+  image_size: 224
+  patch_size: 16
+  num_channels: 3
+  hidden_size: 768
+  num_attention_heads: 12
+  num_hidden_layers: 12
+  dropout: 0.1
+
+# Multimodal Fusion Model
+multimodal_fusion:
+  text_encoder: "bert-base-uncased"
+  image_encoder: "google/vit-base-patch16-224"
+  fusion_method: "attention"  # Options: concatenation, attention, cross_attention
+  hidden_size: 768
+  num_classes: 50
+  dropout: 0.2
+  fusion_dropout: 0.3
+
+# OCR Configuration
+ocr:
+  engine: "tesseract"
+  languages: ["eng"]
+  config: "--oem 3 --psm 6"
+  preprocessing:
+    - "grayscale"
+    - "denoise"
+    - "threshold"
+
+# Preprocessing
+preprocessing:
+  text:
+    lowercase: true
+    remove_special_chars: true
+    max_length: 512
+    padding: "max_length"
+    truncation: true
+
+  image:
+    resize: [224, 224]
+    normalize:
+      mean: [0.485, 0.456, 0.406]
+      std: [0.229, 0.224, 0.225]
+    augmentation:
+      train:
+        - "random_horizontal_flip"
+        - "random_rotation"
+        - "color_jitter"
+      val:
+        - "center_crop"
+
+# Model Paths
+paths:
+  pretrained_models: "./pretrained"
+  saved_models: "./saved_models"
+  checkpoints: "./checkpoints"
+  logs: "./logs"
